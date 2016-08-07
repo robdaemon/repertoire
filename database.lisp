@@ -30,7 +30,7 @@
    (value-normalizer
     :reader value-normalizer
     :initarg :value-normalizer
-    :initform #'(lambda (v column) (declar (ignore column)) v))))
+    :initform #'(lambda (v column) (declare (ignore column)) v))))
 
 (defgeneric make-column (name type &optional default-value))
 
@@ -111,7 +111,7 @@
 (defun extract-schema (column-names schema)
   (loop for c in column-names collect (find-column c schema)))
 
-(defun find-column (column-names schema)
+(defun find-column (column-name schema)
   (or (find column-name schema :key #'name)
       (error "No column: ~a in schema: ~a" column-name schema)))
 
@@ -178,10 +178,17 @@
   `(loop for ,row across (rows ,table) do ,@body))
 
 (defun map-rows (fn table)
-  (loop for rows across (rows table) collect (funcall fn row)))
+  (loop for row across (rows table) collect (funcall fn row)))
 
 (defun column-value (row column-name)
   (getf row column-name))
+
+(defmacro once-only ((&rest names) &body body)
+  (let ((gensyms (loop for n in names collect (gensym))))
+    `(let (,@(loop for g in gensyms collect `(,g (gensym))))
+       `(let (,,@(loop for g in gensyms for n in names collect ``(,,g ,,n)))
+          ,(let (,@(loop for n in names for g in gensyms collect `(,n ,g)))
+             ,@body)))))
 
 (defmacro with-column-values ((&rest vars) row &body body)
   (once-only (row)
@@ -218,25 +225,3 @@
   (setf (rows table) (sort (rows table) (row-comparator column-names (schema table))))
   table)
 
-(defun shuffle-table (table)
-  (nshuffle-vector (rows table))
-  table)
-
-(defun random-selection (table n)
-  (make-instance
-   'table
-   :schema (schema table)
-   :rows (nshuffle-vector (random-sample (rows table) n))))
-
-(defun random-sample (vector n)
-  "Based on Algorithm S from Knuth. TAOCP, vol 2 p 142"
-  (loop with selected = (make-array n :fill-pointer 0)
-        for idx from 0
-        do
-           (loop
-             with to-select = (- n (length selected))
-             for remaining = (- (length vector) idx)
-             while (>= (* remaining (random 1.0)) to-select)
-             do (incf idx))
-           (vector-push (aref vector idx) selected)
-        when (= (length selected) n) return selected))
