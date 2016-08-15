@@ -13,5 +13,6 @@
   :components ((:file "package")
                (:file "database")
                (:file "mp3database")
+               (:file "windows")
                (:file "repertoire")))
 

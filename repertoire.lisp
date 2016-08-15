@@ -5,7 +5,8 @@
 ;;; "repertoire" goes here. Hacks and glory await!
 
 (defun list-songs (tree-view)
-  (let ((list-store (make-instance 'gtk-list-store :column-types '("gint" "gchararray" "gchararray" "gchararray" "gchararray")))
+  (let ((list-store (make-instance 'gtk-list-store
+                                   :column-types '("gint" "gchararray" "gchararray" "gchararray" "gchararray")))
         (values
            (select
             :from *mp3s*
@@ -23,7 +24,8 @@
 
 (defun repertoire-ui ()
   (within-main-loop
-    (let ((builder (make-instance 'gtk-builder)))
+    (let ((builder (make-instance 'gtk-builder))
+          (provider (make-instance 'gtk-css-provider)))
       (gtk-builder-add-from-file builder "C:/Users/robda/Source/lisp/repertoire/repertoire.glade")
       (let ((app-window (gtk-builder-get-object builder "appWindow"))
             (artists-button (gtk-builder-get-object builder "artistsButton"))
@@ -56,4 +58,6 @@
                           (lambda (widget)
                             (declare (ignore widget))
                             (list-songs music-tree)))
+        (gtk-css-provider-load-from-path provider "repertoire.css")
+        (apply-css app-window provider)
         (gtk-widget-show-all app-window)))))
